@@ -51,4 +51,4 @@ printResult(*getOxiNumbers("Na(NO3)")) # --> 1   5 -2
 ```
 
 ## found an error?
-Please create an issue with the tag ```algorithmError```!
+Please create an issue with the label ```algorithmError```!
