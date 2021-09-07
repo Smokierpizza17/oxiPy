@@ -250,8 +250,7 @@ def printResult(elements, overallCharge=0, delimiter=" ", passUp=False, verbose=
 
 
 def wrapper(rawString, oxiFiller=None, printDelimiter=" "):
-    outputText = printResult(*getOxiNumbers(rawString), printDelimiter, True)
-    print(outputText)
+    outputText = printResult(*getOxiNumbers(rawString), printDelimiter)
     return outputText
 
 
@@ -259,4 +258,3 @@ if __name__ == "__main__":
     query = ' '.join(sys.argv[1:])
     if query != "":
         print(printResult(*getOxiNumbers(query.strip())))
-        print(getOxiNumbers(query))
