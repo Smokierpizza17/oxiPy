@@ -23,10 +23,10 @@ Chemical formulas are written without spaces and with plain numbers instead of s
 |molecule |formula |input string |
 --- | --- | ---
 |sodium ion |Na⁺ | ```"Na +"```, ```"Na 1+"``` |
-|copper(II) ion |Cu²⁺ | ```Cu 2+``` |
+|copper(II) ion |Cu²⁺ | ```"Cu 2+"``` |
 |carbonate |CO₃²⁻ | ```"CO3 2-"``` |
 |sodium carbonate |Na₂CO₃ |```"Na2(CO3)"``` |
-|copper(II) nitrate | Cu(NO₃)₂ |```Cu(NO3)2``` |
+|copper(II) nitrate | Cu(NO₃)₂ |```"Cu(NO3)2"``` |
 
 ## structure
 There are three important functions: ```getOxiNumbers```, ```interpretElements```, and ```printResult```.
