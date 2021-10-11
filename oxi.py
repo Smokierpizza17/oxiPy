@@ -5,7 +5,7 @@ import re, sys
 NONMETALELEMENTS = ["H", "He", "C", "N", "O", "F", "P", "S", "Cl", "Se", "Br",
                     "I", "At", "Ts"]
 
-AUTOSETTABLEOXINUMBERS = {"F": -1, "O": -2,
+AUTOSETTABLEOXINUMBERS = {"F": -1,
                           "Li": 1, "Na": 1, "K": 1, "Rb": 1, "Cs": 1, "Fr": 1,
                           "Be": 2, "Mg": 2, "Ca": 2, "Sr": 2, "Ba": 2, "Ra": 2,
                           "Sc": 3, "Y": 3, "Zr": 4, "Hf": 4, "Ta": 5, "Tc": 7,
@@ -14,6 +14,11 @@ AUTOSETTABLEOXINUMBERS = {"F": -1, "O": -2,
                           "La": 3, "Ac": 3, "Th": 4, "Nd": 3, "Pm": 3, "Gd": 3,
                           "Dy": 3, "Ho": 3, "Es": 3, "Er": 3, "Fm": 3, "Md": 3,
                           "Lu": 3, "Lr": 3}
+
+SECONDDEGREEAUTOSETTABLES = {"O": -2, "Cl": -1, "Br": -1, "I": -1, "At": -1,
+                             "Si": 4, "P": 5, "S": 6, "As": 3, "Se": 4,
+                             "Sb": 3, "Te": 4, "Tl": 1, "Pb": 2, "Bi": 3,
+                             "Po": 4, "N": -3}
 
 MOLECULARIONS = {"CO3": ((['C', 1, 4], ['O', 3, -2]), -2),
                  "SO3": ((['S', 1, 4], ['O', 3, -2]), -2),
@@ -71,6 +76,19 @@ def oxiNumbersMissing(elements):
             indices.append(index)
     return indices
 
+def solveMissing(elements, overallCharge):
+    '''computes last oxiNumber based on all surrounding atoms'''
+    missingIndices = oxiNumbersMissing(elements)
+    if len(missingIndices) == 1:
+        missingIndex = missingIndices[0]
+        sumOfOxiNumbers = 0
+        for element in elements:
+            if type(element[2]) == int:
+                sumOfOxiNumbers += element[1] * element[2]
+        lastOxiNumber = 0 - sumOfOxiNumbers + overallCharge
+        elements[missingIndex][2] = lastOxiNumber // elements[missingIndex][1]
+        elements[missingIndex][2] = int(elements[missingIndex][2])
+    return elements
 
 def interpretElements(rawString, oxiFiller=None):
     '''get formatted elements without oxi Numbers (fill with oxiFiller)'''
@@ -117,6 +135,7 @@ def interpretElements(rawString, oxiFiller=None):
 def getOxiNumbers(rawString):
     elements, overallCharge = interpretElements(rawString)
 
+    skipToEnd = False
     # if only one atom given, solve immediately and return
     if len(elements) == 1:
         elements[0][2] = overallCharge  # oxi number automatically charge for
@@ -132,30 +151,6 @@ def getOxiNumbers(rawString):
 
             elements[pos] = replacementElement
 
-    # assign +1 or -1 to Hydrogen based on neighbouring atoms
-    for pos, element in enumerate(elements):
-        if type(element[2]) is int:
-            continue
-
-        if element[0] == "H":
-            # -1 if with metal, +1 if with nonmetal, priority -1
-            try:
-                if elements[pos + 1][0] not in NONMETALELEMENTS:
-                    element[2] = -1
-                elif elements[pos + 1][0] in NONMETALELEMENTS:
-                    element[2] = 1
-            except IndexError:
-                pass
-            try:
-                if elements[pos - 1][0] in NONMETALELEMENTS:
-                    element[2] = 1
-                elif elements[pos - 1][0] not in NONMETALELEMENTS:
-                    element[2] = -1
-            except IndexError:
-                pass
-        if len(oxiNumbersMissing(elements)) <= 1:
-            break
-
     # iterate and find auto-settable atoms, in order of importance
     for autoElement, autoOxiNumber in AUTOSETTABLEOXINUMBERS.items():
         for element in elements:
@@ -166,19 +161,50 @@ def getOxiNumbers(rawString):
             if len(oxiNumbersMissing(elements)) <= 1:
                 break
         if len(oxiNumbersMissing(elements)) <= 1:
-            break
+                    break
+
+    # assign +1 or -1 to Hydrogen based on neighbouring atoms
+    if not skipToEnd:
+        for pos, element in enumerate(elements):
+            if type(element[2]) is int:
+                continue
+
+            if element[0] == "H":
+                # -1 if with metal, +1 if with nonmetal, priority -1
+                try:
+                    if elements[pos + 1][0] not in NONMETALELEMENTS:
+                        element[2] = -1
+                    elif elements[pos + 1][0] in NONMETALELEMENTS:
+                        element[2] = 1
+                except IndexError:
+                    pass
+                try:
+                    if elements[pos - 1][0] in NONMETALELEMENTS:
+                        element[2] = 1
+                    elif elements[pos - 1][0] not in NONMETALELEMENTS:
+                        element[2] = -1
+                except IndexError:
+                    pass
+            if len(oxiNumbersMissing(elements)) <= 1:
+                skipToEnd = True
+                break
+
+    # iterate and find auto-settable atoms, in order of importance
+    missingIndices = oxiNumbersMissing(elements)
+    if not skipToEnd:
+        for autoElement, autoOxiNumber in SECONDDEGREEAUTOSETTABLES.items():
+            for missingIndex in missingIndices:
+                elementName = elements[missingIndex][0]
+                if elementName == autoElement:
+                    elements[missingIndex][2] = autoOxiNumber
+                if len(oxiNumbersMissing(elements)) <= 1:
+                    break
+            if len(oxiNumbersMissing(elements)) <= 1:
+                    break
 
     # compute missing oxiNumber from sum of others and overall charge
-    missingIndices = oxiNumbersMissing(elements)
-    if len(missingIndices) == 1:
-        missingIndex = missingIndices[0]
-        sumOfOxiNumbers = 0
-        for element in elements:
-            if type(element[2]) == int:
-                sumOfOxiNumbers += element[1] * element[2]
-        lastOxiNumber = 0 - sumOfOxiNumbers + overallCharge
-        elements[missingIndex][2] = lastOxiNumber // elements[missingIndex][1]
-        elements[missingIndex][2] = int(elements[missingIndex][2])
+    elements = solveMissing(elements, overallCharge)
+
     return elements, overallCharge
 
 
@@ -250,11 +276,14 @@ def printResult(elements, overallCharge=0, delimiter=" ", passUp=False, verbose=
 
 
 def wrapper(rawString, oxiFiller=None, printDelimiter=" "):
-    outputText = printResult(*getOxiNumbers(rawString), printDelimiter)
+    try:
+        outputText = printResult(*getOxiNumbers(rawString), printDelimiter)
+    except Exception as e:
+        outputText = "ERROR"
     return outputText
 
 
 if __name__ == "__main__":
     query = ' '.join(sys.argv[1:])
     if query != "":
-        print(printResult(*getOxiNumbers(query.strip())))
+        print(wrapper(query.strip()))
