@@ -30,7 +30,8 @@ H2(SO4)
 (NH4)Cl
 K3(PO4)
 H(NO3)
-K(NO2)'''
+K(NO2)
+Ca(NO3)2'''
 
 if questionsList:
     for query in questionsList.split("\n"):

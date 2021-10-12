@@ -151,17 +151,21 @@ def getOxiNumbers(rawString):
 
             elements[pos] = replacementElement
 
+    if len(oxiNumbersMissing(elements)) <= 1:
+        skipToEnd = True
+
     # iterate and find auto-settable atoms, in order of importance
-    for autoElement, autoOxiNumber in AUTOSETTABLEOXINUMBERS.items():
-        for element in elements:
-            if type(element[2]) == int:
-                continue
-            if element[0] == autoElement:
-                element[2] = autoOxiNumber
-            if len(oxiNumbersMissing(elements)) <= 1:
-                break
-        if len(oxiNumbersMissing(elements)) <= 1:
+    if not skipToEnd:
+        for autoElement, autoOxiNumber in AUTOSETTABLEOXINUMBERS.items():
+            for element in elements:
+                if type(element[2]) == int:
+                    continue
+                if element[0] == autoElement:
+                    element[2] = autoOxiNumber
+                if len(oxiNumbersMissing(elements)) <= 1:
                     break
+            if len(oxiNumbersMissing(elements)) <= 1:
+                        break
 
     # assign +1 or -1 to Hydrogen based on neighbouring atoms
     if not skipToEnd:
@@ -224,6 +228,7 @@ def printResult(elements, overallCharge=0, delimiter=" ", passUp=False, verbose=
             newElementStringlets[0] = "(" + newElementStringlets[0]  # add
             # starting bracket
             newElementStringlets[-1] += ")"  # add ending bracket
+            newElementStringlets[-1] += str(element[1])  # add number of subgroup
             oxiNumbers += newoxiNumbers
             elementStringlets += newElementStringlets
             continue
