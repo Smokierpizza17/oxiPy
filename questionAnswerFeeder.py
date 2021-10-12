@@ -37,7 +37,22 @@ H(NO3)
 K(NO2)
 Ca(NO3)2'''
 
-questionsList = '''OH -
+questionsList = '''ClO -
+ClO2 -
+ClO3 -
+ClO4 -
+
+BrO -
+BrO2 -
+BrO3 -
+BrO4 -
+
+IO -
+IO2 -
+IO3 -
+IO4 -
+
+OH -
 O2 2-
 
 OCN -
@@ -60,7 +75,12 @@ AsO4 3-
 MnO4 -
 
 CO3 2-
-C2O4 2-'''
+C2O4 2-
+
+Na(NO3)
+Ca(NO3)2
+
+SCN -'''
 
 if generateSubgroups:
     for query in questionsList.split("\n"):
@@ -72,12 +92,12 @@ if generateSubgroups:
             print(",")
         else:
             print("")
-    # sys.exit()
+    sys.exit()
 
 if questionsList:
     for query in questionsList.split("\n"):
         if query != "":
-            # print(wrapper(query.strip()))
+            # print(getOxiNumbers(query))
             print(printResult(*getOxiNumbers(query)))
             print("")
 

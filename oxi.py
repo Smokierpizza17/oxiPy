@@ -17,25 +17,9 @@ AUTOSETTABLEOXINUMBERS = {"F": -1,
 
 SECONDDEGREEAUTOSETTABLES = {"O": -2, "Cl": -1, "Br": -1, "I": -1, "At": -1}
 
-MOLECULARIONS = {"CN": ((['C', 1, 2], ['N', 1, -3]), -1),
-                 "SCN": ((['S', 1, -2], ['C', 1, 4], ['N', 1, -3]), -1),
-                 "OH": ((['O', 1, -2], ['H', 1, 1]), -1),
-                 "NH4": ((['N', 1, -3], ['H', 4, 1]), 1),
-
-                 "ClO": ((['Cl', 1, 1], ['O', 1, -2]), -1),
-                 "ClO2": ((['Cl', 1, 3], ['O', 2, -2]), -1),
-                 "ClO3": ((['Cl', 1, 5], ['O', 3, -2]), -1),
-                 "ClO4": ((['Cl', 1, 7], ['O', 4, -2]), -1),
-
-                 "BrO": ((['Br', 1, 1], ['O', 1, -2]), -1),
-                 "BrO2": ((['Br', 1, 3], ['O', 2, -2]), -1),
-                 "BrO3": ((['Br', 1, 5], ['O', 3, -2]), -1),
-                 "BrO4": ((['Br', 1, 7], ['O', 4, -2]), -1),
-
-                 "IO": ((['I', 1, 1], ['O', 1, -2]), -1),
-                 "IO2": ((['I', 1, 3], ['O', 2, -2]), -1),
-                 "IO3": ((['I', 1, 5], ['O', 3, -2]), -1),
-                 "IO4": ((['I', 1, 7], ['O', 4, -2]), -1)}
+MOLECULARIONS = {"CN": [[['C', 1, 2], ['N', 1, -3]], -1],
+                 "SCN": [[['S', 1, -2], ['C', 1, 4], ['N', 1, -3]], -1],
+                 "OCN": [[['O', 1, -2], ['C', 1, 4], ['N', 1, -3]], -1]}
 
 overallChargesR = re.compile(r"[0-9]?[+,-]")
 elementGroupsR = re.compile(r"[A-Z][a-z]?[0-9]*|(?:\().*(?:\))[0-9]*")
@@ -91,8 +75,11 @@ def solveMissing(elements, overallCharge):
             if type(element[2]) == int:
                 sumOfOxiNumbers += element[1] * element[2]
         lastOxiNumber = 0 - sumOfOxiNumbers + overallCharge
-        elements[missingIndex][2] = lastOxiNumber // elements[missingIndex][1]
-        elements[missingIndex][2] = int(elements[missingIndex][2])
+        lastOxiNumber = lastOxiNumber // elements[missingIndex][1]
+        elements[missingIndex][2] = lastOxiNumber
+        if type(elements[missingIndex][0]) is list:
+            subgroup, _ = getOxiNumbers(elements[missingIndex][0], True, lastOxiNumber)
+            elements[missingIndex][0] = subgroup
     return elements
 
 def interpretElements(rawString, oxiFiller=None):
@@ -137,8 +124,11 @@ def interpretElements(rawString, oxiFiller=None):
     return elements, overallCharge
 
 
-def getOxiNumbers(rawString):
-    elements, overallCharge = interpretElements(rawString)
+def getOxiNumbers(rawString, passingSubgroup = False, overallCharge=0):
+    if not passingSubgroup:
+        elements, overallCharge = interpretElements(rawString)
+    else:
+        elements = rawString
 
     skipToEnd = False
     # if only one atom given, solve immediately and return
@@ -153,7 +143,10 @@ def getOxiNumbers(rawString):
             subgroupName = element[0]
             replacementElement = [MOLECULARIONS[subgroupName][0], element[1],
                                   MOLECULARIONS[subgroupName][1]]
-
+            elements[pos] = replacementElement
+        elif len(elementNamesR.findall(element[0])) > 1:  # subgroup, not atom
+            replacementElement = [interpretElements(element[0])[0],
+                                  element[1], None]
             elements[pos] = replacementElement
 
     if len(oxiNumbersMissing(elements)) <= 1:
@@ -168,9 +161,11 @@ def getOxiNumbers(rawString):
                 if element[0] == autoElement:
                     element[2] = autoOxiNumber
                 if len(oxiNumbersMissing(elements)) <= 1:
+                    skipToEnd = True
                     break
             if len(oxiNumbersMissing(elements)) <= 1:
-                        break
+                skipToEnd = True
+                break
 
     # assign +1 or -1 to Hydrogen based on neighbouring atoms
     if not skipToEnd:
@@ -236,14 +231,15 @@ def printResult(elements, overallCharge=0, passUp=False, verbose=False):
     # split up elements into parts of the full string (Stringlets™) that each
     # have one oxiNumber
     for element in elements:
-        if type(element[0]) is tuple:
+        if type(element[0]) is list:
             newoxiNumbers, newElementStringlets = printResult(element[0],
                                                               0, True)
             newElementStringlets[0] = "(" + newElementStringlets[0]  # add
             # starting bracket
             newElementStringlets[-1] += ")"  # add ending bracket
-            newElementStringlets[-1] += str(element[1])  # add number of
-            # subgroup
+            if element[1] >= 2:  # if index necessary
+                newElementStringlets[-1] += str(element[1])  # add number of
+                # subgroup
             oxiNumbers += newoxiNumbers
             elementStringlets += newElementStringlets
             continue
