@@ -12,10 +12,7 @@ O2
 N2
 Al 3+
 H2O
-NO3 -
-NO2 -
 NO2
-Cr2O7 2-
 KCl
 NH3
 CaH2
@@ -35,52 +32,39 @@ H2(SO4)
 K3(PO4)
 H(NO3)
 K(NO2)
-Ca(NO3)2'''
-
-questionsList = '''ClO -
+Ca(NO3)2
+ClO -
 ClO2 -
 ClO3 -
 ClO4 -
-
 BrO -
 BrO2 -
 BrO3 -
 BrO4 -
-
 IO -
 IO2 -
 IO3 -
 IO4 -
-
 OH -
 O2 2-
-
 OCN -
 SCN -
-
 PO4 3-
 PO3 3-
-
 SO4 2-
 SO3 2-
 S2O3 2-
-
 NO3 -
 NO2 -
 NO -
-
 CrO4 2-
 Cr2O7 2-
 AsO4 3-
 MnO4 -
-
 CO3 2-
 C2O4 2-
-
 Na(NO3)
-Ca(NO3)2
-
-SCN -'''
+Ca(NO3)2'''
 
 if generateSubgroups:
     for query in questionsList.split("\n"):
