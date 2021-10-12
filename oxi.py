@@ -3,7 +3,7 @@ oxidisation states of the individual atoms.'''
 import re, sys
 
 NONMETALELEMENTS = ["H", "He", "C", "N", "O", "F", "P", "S", "Cl", "Se", "Br",
-                    "I", "At", "Ts"]
+                    "I", "At"]
 
 AUTOSETTABLEOXINUMBERS = {"F": -1,
                           "Li": 1, "Na": 1, "K": 1, "Rb": 1, "Cs": 1, "Fr": 1,
@@ -15,22 +15,27 @@ AUTOSETTABLEOXINUMBERS = {"F": -1,
                           "Dy": 3, "Ho": 3, "Es": 3, "Er": 3, "Fm": 3, "Md": 3,
                           "Lu": 3, "Lr": 3}
 
-SECONDDEGREEAUTOSETTABLES = {"O": -2, "Cl": -1, "Br": -1, "I": -1, "At": -1,
-                             "Si": 4, "P": 5, "S": 6, "As": 3, "Se": 4,
-                             "Sb": 3, "Te": 4, "Tl": 1, "Pb": 2, "Bi": 3,
-                             "Po": 4, "N": -3}
+SECONDDEGREEAUTOSETTABLES = {"O": -2, "Cl": -1, "Br": -1, "I": -1, "At": -1}
 
-MOLECULARIONS = {"CO3": ((['C', 1, 4], ['O', 3, -2]), -2),
-                 "SO3": ((['S', 1, 4], ['O', 3, -2]), -2),
-                 "SO4": ((['S', 1, 6], ['O', 4, -2]), -2),
-                 "NO2": ((['N', 1, 3], ['O', 2, -2]), -1),
-                 "NO3": ((['N', 1, 5], ['O', 3, -2]), -1),
-                 "PO3": ((['P', 1, 3], ['O', 3, -2]), -3),
-                 "PO4": ((['P', 1, 5], ['O', 4, -2]), -3),
-                 "CN": ((['C', 1, 2], ['N', 1, -3]), -1),
+MOLECULARIONS = {"CN": ((['C', 1, 2], ['N', 1, -3]), -1),
                  "SCN": ((['S', 1, -2], ['C', 1, 4], ['N', 1, -3]), -1),
                  "OH": ((['O', 1, -2], ['H', 1, 1]), -1),
-                 "NH4": ((['N', 1, -3], ['H', 4, 1]), 1)}
+                 "NH4": ((['N', 1, -3], ['H', 4, 1]), 1),
+
+                 "ClO": ((['Cl', 1, 1], ['O', 1, -2]), -1),
+                 "ClO2": ((['Cl', 1, 3], ['O', 2, -2]), -1),
+                 "ClO3": ((['Cl', 1, 5], ['O', 3, -2]), -1),
+                 "ClO4": ((['Cl', 1, 7], ['O', 4, -2]), -1),
+
+                 "BrO": ((['Br', 1, 1], ['O', 1, -2]), -1),
+                 "BrO2": ((['Br', 1, 3], ['O', 2, -2]), -1),
+                 "BrO3": ((['Br', 1, 5], ['O', 3, -2]), -1),
+                 "BrO4": ((['Br', 1, 7], ['O', 4, -2]), -1),
+
+                 "IO": ((['I', 1, 1], ['O', 1, -2]), -1),
+                 "IO2": ((['I', 1, 3], ['O', 2, -2]), -1),
+                 "IO3": ((['I', 1, 5], ['O', 3, -2]), -1),
+                 "IO4": ((['I', 1, 7], ['O', 4, -2]), -1)}
 
 overallChargesR = re.compile(r"[0-9]?[+,-]")
 elementGroupsR = re.compile(r"[A-Z][a-z]?[0-9]*|(?:\().*(?:\))[0-9]*")
@@ -41,7 +46,7 @@ subgroupNamesR = re.compile(r"(?<=\().*(?=\))")
 subgroupCountsR = re.compile(r"(?<=\))[0-9]")
 
 capitalLettersR = re.compile(r"[A-Z]")
-numbersR = re.compile(r"[0-9]")
+numbersR = re.compile(r"[0-9]|\?")
 
 subscript = str.maketrans("0123456789+-", "₀₁₂₃₄₅₆₇₈₉₊₋")
 superscript = str.maketrans("0123456789+-", "⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻")
@@ -138,8 +143,8 @@ def getOxiNumbers(rawString):
     skipToEnd = False
     # if only one atom given, solve immediately and return
     if len(elements) == 1:
-        elements[0][2] = overallCharge  # oxi number automatically charge for
-        # elemental compounds
+        elements[0][2] = overallCharge // elements[0][1]  # oxi number
+        # automatically charge for elemental compounds, divided by number
         return elements, overallCharge
 
     # indentify subgroups and solve from lookup table
@@ -209,10 +214,19 @@ def getOxiNumbers(rawString):
     # compute missing oxiNumber from sum of others and overall charge
     elements = solveMissing(elements, overallCharge)
 
+    finished = True
+    for element in elements:
+        if element[2] == None:
+            finished = False
+
+    if not finished:
+        for element in elements:
+            element[2] = None
+
     return elements, overallCharge
 
 
-def printResult(elements, overallCharge=0, delimiter=" ", passUp=False, verbose=False):
+def printResult(elements, overallCharge=0, passUp=False, verbose=False):
     '''prettyprints result with subscript indices and overhead oxiNumbers'''
     oxiNumbers = []
     elementStringlets = []
@@ -224,11 +238,12 @@ def printResult(elements, overallCharge=0, delimiter=" ", passUp=False, verbose=
     for element in elements:
         if type(element[0]) is tuple:
             newoxiNumbers, newElementStringlets = printResult(element[0],
-                                                              0, " ", True)
+                                                              0, True)
             newElementStringlets[0] = "(" + newElementStringlets[0]  # add
             # starting bracket
             newElementStringlets[-1] += ")"  # add ending bracket
-            newElementStringlets[-1] += str(element[1])  # add number of subgroup
+            newElementStringlets[-1] += str(element[1])  # add number of
+            # subgroup
             oxiNumbers += newoxiNumbers
             elementStringlets += newElementStringlets
             continue
@@ -251,8 +266,9 @@ def printResult(elements, overallCharge=0, delimiter=" ", passUp=False, verbose=
 
         # extend either string so that length is equal
         for (oxiNumber, elementStringlet) in zip(oxiNumbers, elementStringlets):
-            elementStringlet += delimiter
-            paddedOxiNumber, paddedElement = spaceinator(oxiNumber, elementStringlet, delimiter)
+            elementStringlet += " "
+            paddedOxiNumber, paddedElement = spaceinator(oxiNumber,
+                                                         elementStringlet, " ")
             oxiNumberString += paddedOxiNumber
             elementString += paddedElement
 
@@ -280,9 +296,9 @@ def printResult(elements, overallCharge=0, delimiter=" ", passUp=False, verbose=
         return upperString + "\n" + lowerString
 
 
-def wrapper(rawString, oxiFiller=None, printDelimiter=" "):
+def wrapper(rawString):
     try:
-        outputText = printResult(*getOxiNumbers(rawString), printDelimiter)
+        outputText = printResult(*getOxiNumbers(rawString))
     except Exception as e:
         outputText = "ERROR"
     return outputText
